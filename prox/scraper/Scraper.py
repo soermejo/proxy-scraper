@@ -1,5 +1,5 @@
 from prox.providers import Provider, Providers
-import aiohttp, asyncio
+import aiohttp, asyncio, random, logging
 
 class Proxy:
     def __init__(self, ip, port):
@@ -13,9 +13,49 @@ class Proxy:
     def __hash__(self):
         return hash(self.ip + self.port)
 
+class Proxies:
+
+    def __init__(self, maxfails=3):
+        self.proxies = set()
+        self.maxfails = maxfails
+        self.lock = asyncio.Lock()
+
+    async def add_proxy(self, proxy: Proxy):
+        self.proxies.add(proxy)
+
+    async def clear_fails(self, proxy: Proxy):
+        async with self.lock:
+            if proxy not in self.proxies:
+                return await self.add_proxy(proxy) # Already removed but adding again as working
+            self.proxies.remove(proxy)
+            proxy.fails = 0 # Modify value
+            await self.add_proxy(proxy)
+
+    async def remove_proxy(self, proxy: Proxy):
+        self.proxies.remove(proxy)
+
+    async def get_proxy(self):
+        async with self.lock:
+            while not self.proxies:
+                await asyncio.sleep(1)
+                logging.debug("No proxy available. waiting...")
+            
+            return random.choice(tuple(self.proxies))
+
+    async def fail(self, proxy: Proxy):
+        async with self.lock:
+            if proxy not in self.proxies: return False # Already removed
+
+            await self.remove_proxy(proxy) # remove proxy
+            
+            if proxy.fails < self.maxfails: # add again if limit not reached
+                proxy.fails += 1 # increase proxy fails
+                return await self.add_proxy(proxy)
+
+        
+
 class Scraper:
-    def __init__(self, timeout):
-        self.timeout = timeout
+    def __init__(self):
         self.session = aiohttp.ClientSession(connector=aiohttp.TCPConnector(ssl=False, limit=None))
 
         self.plain_provider = Provider.ProviderPlainText(self.session)
@@ -29,7 +69,7 @@ class Scraper:
             if len(proxy.split(":")) == 2:
                 proxy = Proxy(*proxy.split(":"))
                 if proxy not in self.proxies: self.proxies.add(proxy)
-        print(len(self.proxies))
+
         return self.proxies
 
     async def get_all_proxies(self):
@@ -52,6 +92,3 @@ class Scraper:
 
 
 
-loop = asyncio.get_event_loop()
-
-loop.run_until_complete(Scraper(10).update_proxies())

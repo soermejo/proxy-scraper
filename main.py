@@ -1,1 +1,1 @@
-from prox.scraper import Scraper
+from prox.checker import Checker
