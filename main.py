@@ -1,1 +1,1 @@
-from prox.checker import Checker
+from prox import server

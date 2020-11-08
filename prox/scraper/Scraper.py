@@ -2,10 +2,10 @@ from prox.providers import Provider, Providers
 import aiohttp, asyncio, random, logging
 
 class Proxy:
-    def __init__(self, ip, port):
+    def __init__(self, ip, port, fails=0):
         self.ip = ip
         self.port = port
-        self.fails = 0
+        self.fails = fails
 
     def __eq__(self, other):
         return self.ip == other.ip and self.port == self.port
