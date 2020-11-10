@@ -18,12 +18,13 @@ class Checker(Proxies):
 
     async def check_and_update(self, proxy: Proxy) -> bool:
         try:
-            async with self.session.get('https://api.ipify.org?format=json', proxy=f"http://{proxy.ip}:{proxy.port}") as response:
-                html = await response.json()
-                if html and html["ip"]:
-                    print(f"[!] {proxy.ip}:{proxy.port}")
-                    await self.add_proxy(Proxy(proxy.ip, proxy.port))
-                    return True
+            async with self.session.get('https://api-m.paypal.com', proxy=f"http://{proxy.ip}:{proxy.port}") as response:
+                if response.status == 403:
+                    html = await response.text()
+                    if "Varnish cache server" in html:
+                        print(f"[!] {proxy.ip}:{proxy.port}")
+                        await self.add_proxy(Proxy(proxy.ip, proxy.port))
+                        return True
                 print(f"[x] {proxy.ip}:{proxy.port}, {html}")
                 return False
 
