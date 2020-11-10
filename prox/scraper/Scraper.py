@@ -8,7 +8,7 @@ class Proxy:
         self.fails = fails
 
     def __eq__(self, other):
-        return self.ip == other.ip and self.port == self.port
+        return self.ip == other.ip and self.port == other.port
 
     def __hash__(self):
         return hash(self.ip + self.port)
